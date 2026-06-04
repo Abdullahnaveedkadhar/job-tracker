@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 import { z } from "zod";
 import {
   CV_SYSTEM_PROMPT,
@@ -21,11 +21,19 @@ function extractJson(text: string): unknown {
   return JSON.parse(payload);
 }
 
-async function generateJson<T>(
+type ContentPart = string | Part;
+
+function toParts(parts: ContentPart[]): Part[] {
+  return parts.map((p) =>
+    typeof p === "string" ? { text: p } : p
+  );
+}
+
+export async function generateJsonWithParts<T>(
   apiKey: string,
   modelName: string,
   systemPrompt: string,
-  userPrompt: string,
+  parts: ContentPart[],
   schema: z.ZodType<T>
 ): Promise<T> {
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -33,13 +41,13 @@ async function generateJson<T>(
     model: modelName,
     systemInstruction: systemPrompt,
     generationConfig: {
-      temperature: 0.35,
+      temperature: 0.2,
       topP: 0.9,
       responseMimeType: "application/json",
     },
   });
 
-  const result = await model.generateContent(userPrompt);
+  const result = await model.generateContent(toParts(parts));
   const text = result.response.text();
   if (!text) throw new Error("Gemini returned an empty response");
 
@@ -57,6 +65,16 @@ async function generateJson<T>(
     );
   }
   return validated.data;
+}
+
+async function generateJson<T>(
+  apiKey: string,
+  modelName: string,
+  systemPrompt: string,
+  userPrompt: string,
+  schema: z.ZodType<T>
+): Promise<T> {
+  return generateJsonWithParts(apiKey, modelName, systemPrompt, [userPrompt], schema);
 }
 
 export async function generateCvContent(

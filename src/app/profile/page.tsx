@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { CvUploadCard } from "@/components/CvUploadCard";
 import { PageHeader } from "@/components/PageHeader";
 import { fetchJson } from "@/lib/fetch-json";
 import type {
@@ -102,14 +103,27 @@ export default function ProfilePage() {
         description="Your source of truth for CV and cover letter generation. Only add information that is accurate."
       />
 
+      <CvUploadCard
+        onImported={(data) => {
+          setProfile({
+            ...emptyProfile(),
+            ...data,
+            skillGroups: data.skillGroups ?? [],
+            experience: data.experience ?? [],
+            education: data.education ?? [],
+            projects: data.projects ?? [],
+          });
+          setStatus("Profile saved from your CV. Review the details below.");
+        }}
+      />
+
       {!profile.fullName.trim() || profile.experience.length === 0 ? (
         <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-sm text-secondary">
-            Starting fresh? Load a complete CV template into this form, then edit
-            anything that needs updating.
+            No CV file handy? Load a starter template instead.
           </p>
           <button type="button" onClick={importSeed} className="btn-secondary shrink-0">
-            Load CV template
+            Load starter template
           </button>
         </div>
       ) : null}
