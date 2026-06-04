@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, UnauthorizedError } from "@/lib/auth/server";
-import { getProfile, getSettings, resolveGeminiKey } from "@/lib/db";
+import { getProfile, getSettings, resolveGeminiKey, resolveGeminiModel } from "@/lib/db";
+import { formatGeminiError } from "@/lib/gemini/errors";
 import { generateCvContent } from "@/lib/gemini/client";
 import { buildCvDocx } from "@/lib/docx/build-cv";
 import { z } from "zod";
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
 
     const cv = await generateCvContent(
       apiKey,
-      settings.preferredModel ?? "gemini-2.0-flash",
+      resolveGeminiModel(settings.preferredModel),
       profile,
       parsed.data.jobDescription,
       parsed.data.company,
@@ -67,7 +68,8 @@ export async function POST(request: Request) {
     if (e instanceof UnauthorizedError) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const message = e instanceof Error ? e.message : "Generation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = formatGeminiError(e);
+    const status = message.includes("quota") ? 429 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

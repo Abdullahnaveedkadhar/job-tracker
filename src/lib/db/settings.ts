@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeGeminiModel } from "../gemini/models";
 import type { AppSettings } from "../types";
 import { DEFAULT_WEEKLY_TARGET } from "../types";
 
@@ -10,7 +11,7 @@ type SettingsRow = {
 
 const defaults = (): AppSettings => ({
   weeklyApplyTarget: DEFAULT_WEEKLY_TARGET,
-  preferredModel: "gemini-2.0-flash",
+  preferredModel: normalizeGeminiModel(),
 });
 
 export async function getSettings(
@@ -38,7 +39,7 @@ export async function getSettings(
   const row = data as SettingsRow;
   return {
     weeklyApplyTarget: row.weekly_apply_target,
-    preferredModel: row.preferred_model,
+    preferredModel: normalizeGeminiModel(row.preferred_model),
   };
 }
 
@@ -61,6 +62,6 @@ export async function saveSettings(
   const row = data as SettingsRow;
   return {
     weeklyApplyTarget: row.weekly_apply_target,
-    preferredModel: row.preferred_model,
+    preferredModel: normalizeGeminiModel(row.preferred_model),
   };
 }

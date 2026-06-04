@@ -40,7 +40,7 @@ create index if not exists jobs_updated_at_idx on public.jobs (user_id, updated_
 create table if not exists public.user_settings (
   user_id uuid primary key references auth.users (id) on delete cascade,
   weekly_apply_target integer not null default 20,
-  preferred_model text not null default 'gemini-2.0-flash'
+  preferred_model text not null default 'gemini-2.5-flash'
 );
 
 -- ─── Auto-create profile + settings on sign-up ───

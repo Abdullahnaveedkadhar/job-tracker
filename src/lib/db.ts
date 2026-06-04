@@ -5,3 +5,5 @@ export { getSettings, saveSettings } from "./db/settings";
 export function resolveGeminiKey(): string | null {
   return process.env.GEMINI_API_KEY?.trim() || null;
 }
+
+export { resolveGeminiModel } from "./gemini/models";
