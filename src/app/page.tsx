@@ -1,65 +1,106 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useCallback, useEffect, useState } from "react";
+import { AddJobForm } from "@/components/AddJobForm";
+import { JobTile } from "@/components/JobTile";
+import { PageHeader } from "@/components/PageHeader";
+import { WeeklyTarget } from "@/components/WeeklyTarget";
+import { fetchJson } from "@/lib/fetch-json";
+import type { JobApplication } from "@/lib/types";
+
+export default function DashboardPage() {
+  const [jobs, setJobs] = useState<JobApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "rejected">("active");
+
+  const load = useCallback(async () => {
+    setLoadError("");
+    try {
+      setJobs(await fetchJson<JobApplication[]>("/api/jobs"));
+    } catch (e) {
+      setJobs([]);
+      setLoadError(e instanceof Error ? e.message : "Could not load applications");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const filtered = jobs.filter((j) => {
+    if (filter === "rejected") return j.stage === "rejected";
+    if (filter === "active") return j.stage !== "rejected";
+    return true;
+  });
+
+  function refreshWeekly() {
+    window.dispatchEvent(new Event("weekly-refresh"));
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="space-y-8">
+      <PageHeader
+        title="Applications"
+        description="Track each role, move through your pipeline, and stay on pace for your weekly apply target."
+      />
+
+      {loadError ? (
+        <p className="rounded-lg border px-4 py-3 text-sm text-secondary" style={{ borderColor: "var(--danger)" }}>
+          {loadError}
+        </p>
+      ) : null}
+
+      <WeeklyTarget />
+
+      <div className="flex flex-wrap gap-2">
+        {(["active", "all", "rejected"] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={filter === f ? "btn-filter btn-filter-active" : "btn-filter"}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <AddJobForm
+        onCreated={(job) => {
+          setJobs((prev) => [job, ...prev]);
+          refreshWeekly();
+        }}
+      />
+
+      {loading ? (
+        <div className="skeleton" />
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          No applications in this view. Add a new role above to get started.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((job) => (
+            <JobTile
+              key={job.id}
+              job={job}
+              onUpdated={(updated) => {
+                setJobs((prev) =>
+                  prev.map((j) => (j.id === updated.id ? updated : j))
+                );
+                refreshWeekly();
+              }}
+              onDeleted={(id) => {
+                setJobs((prev) => prev.filter((j) => j.id !== id));
+                refreshWeekly();
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          ))}
         </div>
-      </main>
+      )}
     </div>
   );
 }
