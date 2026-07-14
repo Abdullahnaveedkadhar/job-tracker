@@ -21,9 +21,35 @@ export interface JobApplication {
   stage: JobStage;
   notes?: string;
   appliedAt?: string;
+  /** 0–100 fit score from discovery ranker */
+  rankScore?: number;
+  /** e.g. adzuna, greenhouse:monzo, lever:scottlogic, manual */
+  source?: string;
+  salary?: string;
+  matchReason?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface JobListQuery {
+  q?: string;
+  stage?: JobStage | "all" | "active";
+  source?: string;
+  minScore?: number;
+  sort?: "rank" | "updated" | "created";
+  limit?: number;
+  offset?: number;
+}
+
+export interface JobListResult {
+  jobs: JobApplication[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/** Soft cap for stored roles per user (discover stops inserting above this). */
+export const MAX_JOBS_PER_USER = 1000;
 
 export interface ProfileExperience {
   id: string;

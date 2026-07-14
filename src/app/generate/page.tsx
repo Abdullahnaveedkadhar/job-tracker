@@ -20,8 +20,8 @@ export default function GeneratePage() {
   const [keywords, setKeywords] = useState("");
 
   useEffect(() => {
-    fetchJson<JobApplication[]>("/api/jobs")
-      .then(setJobs)
+    fetchJson<{ jobs: JobApplication[] }>("/api/jobs?stage=active&limit=100&sort=rank")
+      .then((data) => setJobs(data.jobs ?? []))
       .catch(() => setJobs([]));
   }, []);
 

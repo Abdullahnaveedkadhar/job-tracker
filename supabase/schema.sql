@@ -29,12 +29,21 @@ create table if not exists public.jobs (
   stage text not null default 'cv_created',
   notes text,
   applied_at timestamptz,
+  rank_score numeric not null default 0,
+  source text,
+  salary text,
+  match_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists jobs_user_id_idx on public.jobs (user_id);
 create index if not exists jobs_updated_at_idx on public.jobs (user_id, updated_at desc);
+create index if not exists jobs_rank_score_idx on public.jobs (user_id, rank_score desc);
+create index if not exists jobs_source_idx on public.jobs (user_id, source);
+create index if not exists jobs_user_job_url_idx
+  on public.jobs (user_id, job_url)
+  where job_url is not null;
 
 -- ─── Per-user app settings ───
 create table if not exists public.user_settings (

@@ -69,6 +69,10 @@ export async function PATCH(
       stage: parsed.data.stage ?? existing.stage,
       notes: parsed.data.notes ?? existing.notes,
       appliedAt,
+      rankScore: existing.rankScore,
+      source: existing.source,
+      salary: existing.salary,
+      matchReason: existing.matchReason,
       createdAt: existing.createdAt,
     });
     return NextResponse.json(job);

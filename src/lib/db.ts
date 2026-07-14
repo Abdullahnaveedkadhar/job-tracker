@@ -1,4 +1,12 @@
-export { getJobs, getJob, upsertJob, deleteJob } from "./db/jobs";
+export {
+  getJobs,
+  listJobs,
+  countJobs,
+  findJobByUrl,
+  getJob,
+  upsertJob,
+  deleteJob,
+} from "./db/jobs";
 export { getProfile, saveProfile } from "./db/profile";
 export { getSettings, saveSettings } from "./db/settings";
 

@@ -12,6 +12,13 @@ Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
 
 This creates `profiles`, `jobs`, `user_settings`, RLS policies, and a sign-up trigger.
 
+### Existing projects (discovery upgrade)
+
+If `jobs` already exists, also run `migrations/002_job_discovery.sql` to add:
+
+- `rank_score`, `source`, `salary`, `match_reason`
+- indexes for ranking and URL lookup
+
 ## 3. Authentication URLs
 
 **Authentication → URL configuration**
@@ -37,6 +44,11 @@ Copy from **Project Settings → API**:
 
 Add `GEMINI_API_KEY` for document generation (Vercel secret in production).
 
+Optional for Discover volume search:
+
+- `ADZUNA_APP_ID`
+- `ADZUNA_APP_KEY`
+
 Do **not** expose the `service_role` key in the browser.
 
 ## 6. Vercel deployment
@@ -46,5 +58,7 @@ Add the same variables in **Vercel → Project → Settings → Environment Vari
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `GEMINI_API_KEY`
+- `ADZUNA_APP_ID` (optional)
+- `ADZUNA_APP_KEY` (optional)
 
 Redeploy after adding variables.
