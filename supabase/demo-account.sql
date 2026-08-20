@@ -4,15 +4,87 @@
 -- Run these steps in order, because the last section blocks writes for the
 -- demo user and you want its profile filled in before that happens:
 --
---   1. Sign up in the app with the demo email. The on_auth_user_created
---      trigger creates its profile and settings rows.
---   2. Still signed in as the demo user, open Profile and click
---      "Load starter template" so the account has a CV to generate from.
---   3. Run this whole file in the Supabase SQL Editor.
+--   1. Create the demo user. Either sign up through the app, or use the
+--      Supabase dashboard (Authentication -> Users -> Add user, with
+--      "Auto Confirm User" ticked), or run section 0 below.
+--      Either way the on_auth_user_created trigger adds its profile and
+--      settings rows.
+--   2. Sign in as the demo user, open Profile and click "Load starter
+--      template" so the account has a CV to generate from.
+--   3. Run sections 1 and 2 of this file in the Supabase SQL Editor.
 --   4. Set NEXT_PUBLIC_DEMO_EMAIL and NEXT_PUBLIC_DEMO_PASSWORD in Vercel.
 --
--- Change the email on the next line to match the account you created.
+-- Change the email below to match the account you created.
 -- ─────────────────────────────────────────────────────────────────────────────
+
+
+-- ═══ 0. Create the auth user (optional) ══════════════════════════════════════
+--
+-- Only needed if you want this scripted rather than clicking through the
+-- dashboard. The auth schema is internal to Supabase and its columns have
+-- changed between GoTrue versions, so prefer the dashboard if you have the
+-- choice; this is here for reproducible environments.
+--
+-- Set the password on the line marked below before running. It ends up in
+-- NEXT_PUBLIC_DEMO_PASSWORD and is therefore public: use a throwaway value,
+-- never a password you use anywhere else.
+--
+-- Both inserts matter. A row in auth.users alone produces a user that exists
+-- but cannot sign in, because password login resolves auth.identities first.
+
+do $$
+declare
+  demo_email  text := 'demo@example.com';
+  demo_pass   text := 'CHANGE-ME-BEFORE-RUNNING';  -- <- set this
+  new_user_id uuid;
+begin
+  if exists (select 1 from auth.users where email = demo_email) then
+    raise notice 'Demo user already exists, skipping creation.';
+    return;
+  end if;
+
+  new_user_id := gen_random_uuid();
+
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password,
+    email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+    created_at, updated_at
+  )
+  values (
+    '00000000-0000-0000-0000-000000000000',
+    new_user_id,
+    'authenticated',
+    'authenticated',
+    demo_email,
+    extensions.crypt(demo_pass, extensions.gen_salt('bf')),
+    now(),                                   -- pre-confirmed, no email step
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"full_name":"Demo User"}'::jsonb,
+    now(),
+    now()
+  );
+
+  insert into auth.identities (
+    id, user_id, provider_id, provider, identity_data,
+    last_sign_in_at, created_at, updated_at
+  )
+  values (
+    gen_random_uuid(),
+    new_user_id,
+    demo_email,                              -- provider_id is the email for the email provider
+    'email',
+    jsonb_build_object('sub', new_user_id::text, 'email', demo_email),
+    now(),
+    now(),
+    now()
+  );
+
+  raise notice 'Created demo user %', new_user_id;
+end
+$$;
+
+
+-- ═══ 1. Sample applications across the pipeline ══════════════════════════════
 
 create or replace function public.demo_user_id()
 returns uuid
@@ -23,8 +95,6 @@ set search_path = public, auth
 as $$
   select id from auth.users where email = 'demo@example.com'
 $$;
-
--- ─── Sample applications across the pipeline ───
 
 delete from public.jobs where user_id = public.demo_user_id();
 
@@ -64,7 +134,7 @@ values
    'Large graduate intake; strong C++ preference is a partial mismatch',
    now() - interval '8 days', null);
 
--- ─── Make the demo account read-only ───
+-- ═══ 2. Make the demo account read-only ══════════════════════════════════════
 --
 -- Visitors share this account, so writes are blocked at the database rather
 -- than in the UI. Every existing policy already scopes rows to auth.uid();
