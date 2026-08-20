@@ -45,10 +45,16 @@ begin
 
   new_user_id := gen_random_uuid();
 
+  -- The token columns must be '' rather than NULL. GoTrue scans them into
+  -- non-nullable Go strings, so a NULL makes every sign-in fail with the
+  -- unhelpful "Database error querying schema".
   insert into auth.users (
     instance_id, id, aud, role, email, encrypted_password,
     email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at
+    created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new,
+    email_change_token_current, recovery_token,
+    phone_change, phone_change_token, reauthentication_token
   )
   values (
     '00000000-0000-0000-0000-000000000000',
@@ -61,7 +67,10 @@ begin
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"Demo User"}'::jsonb,
     now(),
-    now()
+    now(),
+    '', '', '',
+    '', '',
+    '', '', ''
   );
 
   insert into auth.identities (
@@ -82,6 +91,19 @@ begin
   raise notice 'Created demo user %', new_user_id;
 end
 $$;
+
+-- Repair an account created before the token columns were set. Safe to run at
+-- any time; it is a no-op once the values are already ''.
+update auth.users
+set confirmation_token         = coalesce(confirmation_token, ''),
+    email_change               = coalesce(email_change, ''),
+    email_change_token_new     = coalesce(email_change_token_new, ''),
+    email_change_token_current = coalesce(email_change_token_current, ''),
+    recovery_token             = coalesce(recovery_token, ''),
+    phone_change               = coalesce(phone_change, ''),
+    phone_change_token         = coalesce(phone_change_token, ''),
+    reauthentication_token     = coalesce(reauthentication_token, '')
+where email = 'demo@example.com';
 
 
 -- ═══ 1. Sample applications across the pipeline ══════════════════════════════
