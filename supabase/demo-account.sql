@@ -9,10 +9,10 @@
 --      "Auto Confirm User" ticked), or run section 0 below.
 --      Either way the on_auth_user_created trigger adds its profile and
 --      settings rows.
---   2. Sign in as the demo user, open Profile and click "Load starter
---      template" so the account has a CV to generate from.
---   3. Run sections 1 and 2 of this file in the Supabase SQL Editor.
---   4. Set NEXT_PUBLIC_DEMO_EMAIL and NEXT_PUBLIC_DEMO_PASSWORD in Vercel.
+--   2. Run sections 1 and 2 of this file in the Supabase SQL Editor. Section 1
+--      fills in the profile and sample applications; section 2 locks the
+--      account down, so run them in that order.
+--   3. Set NEXT_PUBLIC_DEMO_EMAIL and NEXT_PUBLIC_DEMO_PASSWORD in Vercel.
 --
 -- Change the email below to match the account you created.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ set confirmation_token         = coalesce(confirmation_token, ''),
 where email = 'demo@example.com';
 
 
--- ═══ 1. Sample applications across the pipeline ══════════════════════════════
+-- ═══ 1. Seed the demo profile and applications ══════════════════════════════
 
 create or replace function public.demo_user_id()
 returns uuid
@@ -118,6 +118,21 @@ as $$
   select id from auth.users where email = 'demo@example.com'
 $$;
 
+-- Profile. Mirrors src/lib/seed/demo-profile.ts, so the demo account is set up
+-- without needing to sign in and press "Load starter template".
+update public.profiles
+set full_name       = $txt$Alex Doe$txt$,
+    location        = $txt$Manchester, UK$txt$,
+    summary         = $txt$Computer Science graduate with commercial experience in React and Next.js. Comfortable owning features end to end, from API design through to accessible, responsive UI. Looking for a graduate software engineering role in a team that reviews code and mentors juniors.$txt$,
+    additional_info = $txt$Available immediately. Open to hybrid or remote roles across the UK.$txt$,
+    skill_groups    = $json$[{"id": "skill-frontend", "category": "Frontend", "items": "React, Next.js, TypeScript, JavaScript (ES6+), HTML5, CSS, responsive and mobile-first layouts, component patterns, accessibility (semantic HTML, WCAG-minded UI)"}, {"id": "skill-backend", "category": "Backend and data", "items": "Node.js, Python, REST API design, SQL and schema design, PostgreSQL, authentication and authorisation, third-party API integration"}, {"id": "skill-tooling", "category": "Tooling and delivery", "items": "Git and GitHub (feature branches, pull requests, code review), CI pipelines, automated testing, Vercel and container-based deploys"}, {"id": "skill-professional", "category": "Professional", "items": "Stakeholder communication, technical documentation, agile delivery, estimating and scoping work independently"}]$json$::jsonb,
+    experience      = $json$[{"id": "exp-1", "title": "Junior Software Engineer", "company": "Example Software Ltd", "startDate": "July 2025", "endDate": "present", "bullets": ["Ship production features end to end across a React front end and a Node API, from ticket refinement through to release", "Reduced median dashboard load time from 3.1s to 900ms by paginating a previously unbounded query and memoising expensive renders", "Added integration tests around the billing flow, cutting regressions reported by support by roughly half over two quarters", "Review pull requests from other juniors and pair with the team lead on architectural decisions"]}, {"id": "exp-2", "title": "Software Engineering Intern", "company": "Example Digital Agency", "startDate": "June 2024", "endDate": "September 2024", "bullets": ["Built client-facing marketing sites in Next.js with a headless CMS, deployed on Vercel", "Translated design files into accessible, responsive components with keyboard navigation and audited colour contrast", "Worked through GitHub feature branches and pull requests, responding to review feedback from senior developers"]}]$json$::jsonb,
+    education       = $json$[{"id": "edu-1", "qualification": "BSc (Hons) Computer Science", "institution": "Example University", "dates": "2022 to 2025", "detail": "First Class Honours. Modules in software engineering, algorithms and data structures, databases, and distributed systems."}]$json$::jsonb,
+    projects        = $json$[{"id": "proj-1", "name": "Open-source contribution: date-parsing library", "context": "Community project, ~4k GitHub stars", "dates": "2025", "bullets": ["Fixed a timezone off-by-one affecting DST boundaries, with a regression test covering the reported cases", "Change reviewed and merged by maintainers, then shipped in the following minor release"]}, {"id": "proj-2", "name": "Allotment watering scheduler", "context": "Personal project", "dates": "2024", "bullets": ["Raspberry Pi and Python service that schedules irrigation from soil-moisture readings and a weather API forecast", "Exposes a small React dashboard for history and manual overrides; running continuously for over a year"]}]$json$::jsonb,
+    updated_at      = now()
+where user_id = public.demo_user_id();
+
+-- Applications across the pipeline.
 delete from public.jobs where user_id = public.demo_user_id();
 
 insert into public.jobs

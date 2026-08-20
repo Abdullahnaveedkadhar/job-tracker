@@ -88,7 +88,7 @@ Then open <http://localhost:3000>. `npm run db:check` verifies the three tables 
 
 Setting the two `NEXT_PUBLIC_DEMO_*` variables adds a one-click sign-in to the landing and login pages so visitors can look around without registering. Those credentials are exposed to the browser by design, so point them at a throwaway account only.
 
-`supabase/demo-account.sql` sets the account up in three sections: creating the auth user (optional — the dashboard's *Authentication → Users → Add user* does the same thing), seeding sample applications across the pipeline, and blocking writes for that user through row-level security so a shared account survives contact with the public. Re-run sections 1 and 2 at any time to reset it.
+`supabase/demo-account.sql` sets the account up in three sections: creating the auth user (optional — the dashboard's *Authentication → Users → Add user* does the same thing), seeding the profile and sample applications, and blocking writes for that user through row-level security so a shared account survives contact with the public. Re-run sections 1 and 2 at any time to reset it.
 
 ## Deploying
 
