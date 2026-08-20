@@ -15,9 +15,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://job-tracker-phi-one.vercel.app";
+
+const title = "Job Tracker";
+const description =
+  "Find UK graduate roles, rank them against your profile, track every application, and export tailored CVs and cover letters as Word documents.";
+
 export const metadata: Metadata = {
-  title: "Job Tracker",
-  description: "Track job applications, weekly targets, and tailored CVs",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: title,
+    template: "%s · Job Tracker",
+  },
+  description,
+  applicationName: title,
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: title,
+    title,
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 const themeScript = `

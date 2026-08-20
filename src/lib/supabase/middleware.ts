@@ -4,9 +4,32 @@ import { getSupabaseAnonKey, getSupabaseUrl, isSupabaseConfigured } from "./env"
 
 const PUBLIC_PREFIXES = ["/login", "/signup", "/setup", "/auth"];
 
+/** The landing page is public, but only at exactly "/". */
+const PUBLIC_EXACT = ["/"];
+
+/**
+ * Generated metadata assets (Open Graph card, icons). These must stay reachable
+ * without a session or link previews break for anyone not signed in.
+ */
+const PUBLIC_ASSET_PREFIXES = [
+  "/opengraph-image",
+  "/twitter-image",
+  "/icon",
+  "/apple-icon",
+  "/favicon",
+  "/robots.txt",
+  "/sitemap.xml",
+];
+
+function isPublicAsset(pathname: string): boolean {
+  return PUBLIC_ASSET_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
 const PUBLIC_API = ["/api/health/db"];
 
 function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_EXACT.includes(pathname)) return true;
+  if (isPublicAsset(pathname)) return true;
   return PUBLIC_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
@@ -17,9 +40,10 @@ export async function updateSession(request: NextRequest) {
 
   if (!isSupabaseConfigured()) {
     if (
+      pathname === "/" ||
       pathname === "/setup" ||
       pathname.startsWith("/_next") ||
-      pathname.startsWith("/favicon")
+      isPublicAsset(pathname)
     ) {
       return NextResponse.next();
     }
@@ -69,11 +93,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && (pathname === "/login" || pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/profile", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (pathname === "/setup") {
-    return NextResponse.redirect(new URL("/profile", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;
