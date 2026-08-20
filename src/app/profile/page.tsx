@@ -5,12 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { CvUploadCard } from "@/components/CvUploadCard";
 import { PageHeader } from "@/components/PageHeader";
 import { fetchJson } from "@/lib/fetch-json";
-import type {
-  ProfileEducation,
-  ProfileExperience,
-  ProfileProject,
-  UserProfile,
-} from "@/lib/types";
+import type { ProfileExperience, UserProfile } from "@/lib/types";
 
 const emptyProfile = (): UserProfile => ({
   fullName: "",
@@ -47,10 +42,10 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function importSeed() {
+  async function loadStarterTemplate() {
     setStatus("Importing…");
     try {
-      await fetchJson<{ ok: boolean }>("/api/profile/seed", { method: "POST" });
+      await fetchJson<{ ok: boolean }>("/api/profile/demo", { method: "POST" });
       const data = await fetchJson<UserProfile>("/api/profile");
       setProfile({
         ...emptyProfile(),
@@ -122,7 +117,7 @@ export default function ProfilePage() {
           <p className="text-sm text-secondary">
             No CV file handy? Load a starter template instead.
           </p>
-          <button type="button" onClick={importSeed} className="btn-secondary shrink-0">
+          <button type="button" onClick={loadStarterTemplate} className="btn-secondary shrink-0">
             Load starter template
           </button>
         </div>

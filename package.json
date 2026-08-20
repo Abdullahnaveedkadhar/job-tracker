@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:profile": "node scripts/seed-profile.mjs",
     "db:check": "node scripts/check-db.mjs",
     "db:apply": "node scripts/apply-schema.mjs"
   },

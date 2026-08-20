@@ -63,9 +63,9 @@ export default function SetupPage() {
         <section>
           <h2 className="section-title mb-2">4. Profile data</h2>
           <p>
-            Sign in and complete <strong>Profile</strong>, or run{" "}
-            <code className="inline-code">npm run seed:profile</code> once from the
-            project folder (requires a service role key in environment variables).
+            Sign in and complete <strong>Profile</strong>. You can upload an
+            existing CV to fill it in automatically, or load the starter template
+            and edit from there.
           </p>
         </section>
 
