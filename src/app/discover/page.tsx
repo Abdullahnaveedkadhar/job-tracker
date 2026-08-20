@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { JobTile } from "@/components/JobTile";
 import { PageHeader } from "@/components/PageHeader";
 import { fetchJson } from "@/lib/fetch-json";
@@ -32,36 +32,46 @@ export default function DiscoverPage() {
   const [source, setSource] = useState("");
   const [sort, setSort] = useState<"rank" | "updated">("rank");
   const [offset, setOffset] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
   const limit = 40;
 
-  const load = useCallback(async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        stage: "active",
-        sort,
-        limit: String(limit),
-        offset: String(offset),
-        minScore: String(minScore),
-      });
-      if (q.trim()) params.set("q", q.trim());
-      if (source.trim()) params.set("source", source.trim());
-      const data = await fetchJson<JobListResult>(`/api/jobs?${params}`);
-      setJobs(data.jobs);
-      setTotal(data.total);
-    } catch (e) {
-      setJobs([]);
-      setTotal(0);
-      setError(e instanceof Error ? e.message : "Could not load roles");
-    } finally {
-      setLoading(false);
-    }
-  }, [q, minScore, source, sort, offset]);
-
   useEffect(() => {
+    // Filters change faster than requests resolve, so ignore any response that
+    // is no longer the one this effect asked for.
+    let current = true;
+
+    async function load() {
+      setError("");
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          stage: "active",
+          sort,
+          limit: String(limit),
+          offset: String(offset),
+          minScore: String(minScore),
+        });
+        if (q.trim()) params.set("q", q.trim());
+        if (source.trim()) params.set("source", source.trim());
+        const data = await fetchJson<JobListResult>(`/api/jobs?${params}`);
+        if (!current) return;
+        setJobs(data.jobs);
+        setTotal(data.total);
+      } catch (e) {
+        if (!current) return;
+        setJobs([]);
+        setTotal(0);
+        setError(e instanceof Error ? e.message : "Could not load roles");
+      } finally {
+        if (current) setLoading(false);
+      }
+    }
+
     load();
-  }, [load]);
+    return () => {
+      current = false;
+    };
+  }, [q, minScore, source, sort, offset, reloadToken]);
 
   async function runDiscover() {
     setDiscovering(true);
@@ -80,7 +90,7 @@ export default function DiscoverPage() {
         `Fetched ${result.fetched}. Inserted ${result.inserted}, updated ${result.updated}. Boards ${result.sources.boards}. ${adzunaNote}.`
       );
       setOffset(0);
-      await load();
+      setReloadToken((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Discover failed");
     } finally {

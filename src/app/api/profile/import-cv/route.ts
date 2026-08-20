@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { requireUser, UnauthorizedError } from "@/lib/auth/server";
-import { apiError } from "@/lib/api-response";
 import { extractCvContent } from "@/lib/cv/extract-text";
 import { CV_MAX_BYTES } from "@/lib/cv/supported-formats";
 import {

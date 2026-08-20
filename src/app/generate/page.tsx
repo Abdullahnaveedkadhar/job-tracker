@@ -25,15 +25,14 @@ export default function GeneratePage() {
       .catch(() => setJobs([]));
   }, []);
 
-  useEffect(() => {
-    if (!selectedJobId) return;
-    const job = jobs.find((j) => j.id === selectedJobId);
-    if (job) {
-      setCompany(job.company);
-      setRole(job.role);
-      if (job.jobDescription) setJobDescription(job.jobDescription);
-    }
-  }, [selectedJobId, jobs]);
+  function selectJob(jobId: string) {
+    setSelectedJobId(jobId);
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return;
+    setCompany(job.company);
+    setRole(job.role);
+    if (job.jobDescription) setJobDescription(job.jobDescription);
+  }
 
   async function generate() {
     setError("");
@@ -101,7 +100,7 @@ export default function GeneratePage() {
           <select
             className="select-input"
             value={selectedJobId}
-            onChange={(e) => setSelectedJobId(e.target.value)}
+            onChange={(e) => selectJob(e.target.value)}
           >
             <option value="">Enter details manually</option>
             {jobs.map((j) => (

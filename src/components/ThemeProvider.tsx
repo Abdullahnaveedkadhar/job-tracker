@@ -4,8 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
 } from "react";
 
 export type Theme = "light" | "dark";
@@ -20,38 +19,49 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "job-tracker-theme";
 
+/**
+ * A blocking script in the root layout resolves the theme and writes it to
+ * <html data-theme> before first paint, so there is no flash of the wrong
+ * theme. That attribute stays the source of truth and React subscribes to it,
+ * rather than keeping a second copy of the theme in component state.
+ */
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): Theme {
+  return document.documentElement.getAttribute("data-theme") === "light"
+    ? "light"
+    : "dark";
+}
+
+function getServerSnapshot(): Theme {
+  return "dark";
+}
+
 function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  try {
+    localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+    // Storage can be unavailable in private browsing; the theme still applies
+    // for this session, it just will not be remembered.
+  }
+  for (const listener of listeners) listener();
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial =
-      stored === "light" || stored === "dark"
-        ? stored
-        : window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-    setThemeState(initial);
-    applyTheme(initial);
-  }, []);
-
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    applyTheme(next);
-  }, []);
+  const setTheme = useCallback((next: Theme) => applyTheme(next), []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem(STORAGE_KEY, next);
-      applyTheme(next);
-      return next;
-    });
+    applyTheme(getSnapshot() === "dark" ? "light" : "dark");
   }, []);
 
   return (
